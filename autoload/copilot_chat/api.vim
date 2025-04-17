@@ -20,7 +20,7 @@ function! copilot_chat#api#async_request(messages, file_list) abort
 
   let l:data = json_encode({
         \ 'intent': v:false,
-        \ 'model': g:copilot_chat_default_model,
+        \ 'model': copilot_chat#config#model(),
         \ 'temperature': 0,
         \ 'top_p': 1,
         \ 'n': 1,
