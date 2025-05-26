@@ -319,17 +319,20 @@ function! copilot_chat#buffer#check_for_macro() abort
     " Generate list of tabs with #file: prefix, excluding current buffer
     let tab_list = []
     for i in range(1, tabpagenr('$'))
-      let buflist = tabpagebuflist(i)
-      let winnr = tabpagewinnr(i)
-      let buf_nr = buflist[winnr - 1]
-      let filename = bufname(buf_nr)
+      let buffers = tabpagebuflist(i)
+      for buf in buffers
+        let filename = bufname(buf)
+        " Only add if it's not the current buffer and has a filename
+        if filename !=# '' && filename !~# 'CopilotChat'
+          " Use the relative path format instead of just the base filename
+          let display_name = '#file:' . filename
+          call add(tab_list, display_name)
+        endif
+      endfor
+      "let winnr = tabpagewinnr(i)
+      "let buf_nr = buflist[winnr - 1]
+      "let filename = bufname(buf_nr)
 
-      " Only add if it's not the current buffer and has a filename
-      if buf_nr !=# current_bufnr && filename !=# ''
-        " Use the relative path format instead of just the base filename
-        let display_name = '#file:' . filename
-        call add(tab_list, display_name)
-      endif
     endfor
 
     " Insert the tab list at cursor position, one per line
