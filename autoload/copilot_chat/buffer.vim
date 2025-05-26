@@ -301,7 +301,7 @@ function! copilot_chat#buffer#highlight_code_block(start_line, end_line, lang, b
   endif
 endfunction
 
-function! copilot_chat#buffer#check_for_macro()
+function! copilot_chat#buffer#check_for_macro() abort
   let current_line = getline('.')
   let cursor_pos = col('.')
   let before_cursor = strpart(current_line, 0, cursor_pos)
@@ -311,7 +311,7 @@ function! copilot_chat#buffer#check_for_macro()
 
     " Delete the pattern
     call cursor(line('.'), pattern_start + 1)
-    exec "normal! d" . len('/tab all') . "l"
+    exec 'normal! d' . len('/tab all') . 'l'
 
     " Get current buffer number to exclude it
     let current_bufnr = bufnr('%')
@@ -325,9 +325,9 @@ function! copilot_chat#buffer#check_for_macro()
       let filename = bufname(buf_nr)
 
       " Only add if it's not the current buffer and has a filename
-      if buf_nr != current_bufnr && filename != ''
+      if buf_nr !=# current_bufnr && filename !=# ''
         " Use the relative path format instead of just the base filename
-        let display_name = "#file:" . filename
+        let display_name = '#file:' . filename
         call add(tab_list, display_name)
       endif
     endfor
@@ -336,7 +336,7 @@ function! copilot_chat#buffer#check_for_macro()
     if len(tab_list) > 0
       " Add a newline at the end of the text to be inserted
       let tabs_text = join(tab_list, "\n") . "\n"
-      exec "normal! i" . tabs_text
+      exec 'normal! i' . tabs_text
     else
       exec "normal! iNo other tabs found\n"
     endif
@@ -355,7 +355,7 @@ function! copilot_chat#buffer#check_for_macro()
       let line = getline('.')
       let start = match(line, '#file:') + 6
       let typed = strpart(line, start, col('.') - start - 1)
-      if typed != '' && filereadable(typed) && !isdirectory(typed)
+      if typed !=# '' && filereadable(typed) && !isdirectory(typed)
         return
       endif
 
