@@ -27,7 +27,7 @@ function! copilot_chat#models#filter_models(winid, key) abort
 
   call popup_settext(a:winid, l:display_items)
 
-	let l:bufnr = winbufnr(a:winid)
+  let l:bufnr = winbufnr(a:winid)
   call prop_add(g:copilot_popup_selection + 1, 1, {
         \ 'type': 'highlight',
         \ 'length': 60,
@@ -65,7 +65,7 @@ function! copilot_chat#models#select() abort
 
   let l:popup_id = popup_create(l:display_items, l:options)
 
-	let l:bufnr = winbufnr(l:popup_id)
+  let l:bufnr = winbufnr(l:popup_id)
   call prop_type_add('highlight', {'highlight': 'GreenHighlight', 'bufnr': l:bufnr})
   call prop_add(g:copilot_popup_selection + 1, 1, {
         \ 'type': 'highlight',
