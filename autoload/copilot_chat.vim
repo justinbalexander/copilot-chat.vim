@@ -48,6 +48,8 @@ function! copilot_chat#submit_message() abort
   let l:pattern = ' ━\+$'
   call cursor(1,1)
 
+  let l:first_user = 1
+
   while search(l:pattern, 'W') > 0
     let l:header_line = getline('.')
     let l:role = 'user'
@@ -80,6 +82,12 @@ function! copilot_chat#submit_message() abort
       endif
     endfor
     let l:message = join(l:lines, "\n")
+
+    if l:role ==# 'user' && l:first_user
+      let l:home_file_contents = readfile(expand('~/copilot_chat_prompt.md'))
+      let l:message = join(l:home_file_contents, "\n") . "\n" . l:message
+      let l:first_user = 0
+    endif
 
     call add(l:messages, {'content': l:message, 'role': l:role})
     call cursor(line('.'), col('.') + 1)
