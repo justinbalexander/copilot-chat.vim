@@ -76,6 +76,82 @@ function! copilot_chat#api#handle_job_output(channel, msg) abort
   endif
 endfunction
 
+function! copilot_chat#api#apply_code_change(filename, vimcmd, code) abort
+  " Open the file in the background
+  execute 'silent split'
+  execute 'silent find' fnameescape(a:filename)
+  " Replace <CR> with \r for :normal
+  let normcmd = substitute(a:vimcmd, '<CR>', "\r", 'g')
+  if normcmd =~ a:vimcmd
+    echoerr "LLM did not output <CR> for filename and vimcmd:".a:filename.":".a:vimcmd
+  endif
+  " Execute the normal command to select the code
+  " Disabling auto indenting and such temporarily
+  execute 'let l:magic_state = &magic'
+  execute 'silent! setlocal magic'
+  execute 'silent! setlocal paste'
+  execute 'silent normal! gg' . normcmd . a:code
+  execute 'silent! setlocal nopaste'
+  execute 'let &magic = l:magic_state'
+  " Write changes to the file
+  execute 'silent! update' fnameescape(a:filename)
+  " Close the window
+  execute 'silent! close'
+endfunction
+
+" Process the llm output to search for new instructions to be
+" executed
+function! copilot_chat#api#process_llm_output(llm_output) abort
+  let parse_state = "code_search"
+  " code_search
+  " consume_code_block
+
+  " Declare variables that need to persist through multiple lines of
+  " parsed llm_output
+  let filename = ""
+  let vimcmd = ""
+  let code = ""
+
+  for line in a:llm_output
+    if parse_state == "consume_code_block"
+      if line =~ '^```$'
+        " Found end of block, go back to searching for the next code block
+        " after dealing with the latest find
+        let parse_state = "code_search"
+        " There's always an extra return appended. Delete it.
+        let code = substitute(code, '\r$', '', '')
+        call copilot_chat#api#apply_code_change(filename, vimcmd, code)
+
+        " Reset all persistent variables
+        let filename = ""
+        let vimcmd = ""
+        let code = ""
+        continue
+      else
+        " Collecting the text because we haven't found the end of the block
+        " The newline gets stripped so I want to add it back so it's exactly
+        " as 'typed' by the llm
+        let code .= line."\r"
+      endif
+    elseif parse_state == "code_search"
+      " Searching for a new code block, do we find one that matches the
+      " pattern we are expecting?
+      " Pattern:```filetype /path/to/file:vimnormalcommands
+      " Note the \{-} makes the match non-greedy otherwise vim commands
+      " with a colon in them get pulled into the filename
+      let header = matchlist(line, '^```[a-zA-Z0-9_+-]*\s\+\(\S\{-}\):\(.*\)$')
+      if !empty(header)
+        " We found a code block, parse out the contents, spread over multiple
+        " lines
+        let parse_state = "consume_code_block"
+
+        let filename = header[1]
+        let vimcmd = header[2]
+      endif
+    endif
+  endfor
+endfunction
+
 function! copilot_chat#api#handle_job_close(channel, msg) abort
   call deletebufline(g:copilot_chat_active_buffer, '$')
   let l:result = ''
@@ -99,6 +175,8 @@ function! copilot_chat#api#handle_job_close(channel, msg) abort
   call copilot_chat#buffer#append_message(l:separator)
   call copilot_chat#buffer#append_message(split(l:result, "\n"))
   call copilot_chat#buffer#add_input_separator()
+
+  call copilot_chat#api#process_llm_output(split(l:result, "\n"))
 endfunction
 
 function! copilot_chat#api#handle_job_error(channel, msg) abort
